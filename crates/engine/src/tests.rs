@@ -870,7 +870,7 @@ fn form_with_field(name: &str) -> Vec<u8> {
 fn duplicating_a_page_with_a_field_keeps_the_field_name() {
     let mut s = Session::new().with_clock(|| 1_700_000_000);
     let id = s.open("a.pdf", None, Arc::new(form_with_field("Text1")), None).unwrap();
-    s.apply(id, Edit::DuplicatePages { pages: vec![0] }).unwrap();
+    s.apply(id, Edit::DuplicatePages { pages: vec![0], at: None }).unwrap();
     let doc = s.get(id).unwrap();
     assert_eq!(doc.info.pages.len(), 2);
     assert!(doc.form.iter().all(|f| f.name == "Text1"), "{:?}", doc.form.iter().map(|f| &f.name).collect::<Vec<_>>());
@@ -1239,6 +1239,22 @@ fn the_permissions_password_unlocks_an_open_document() {
     s.mark_saved(id, saved, None).unwrap();
     assert!(s.get(id).unwrap().allows_security_change(), "after saving");
     s.apply(id, Edit::RemoveProtection).unwrap();
+    let plain = s.save_bytes(id).unwrap();
+    assert!(pdfcraft_cos::Document::open(plain).unwrap().security().is_none(), "security removed");
+}
+
+#[test]
+fn remove_security_from_a_file_with_its_encrypt_dictionary_in_the_trailer() {
+    // MuPDF writes /Encrypt inline in the trailer rather than as an object (#2661).
+    let mut doc = pdfcraft_cos::Document::open_with_password(protected("user", "owner", -1), Some("owner")).unwrap();
+    let r = doc.trailer().reference(b"Encrypt").unwrap();
+    let dict = doc.get(r).as_dict().cloned().unwrap();
+    doc.trailer_mut().set(b"Encrypt".to_vec(), pdfcraft_cos::Object::Dict(dict));
+    let bytes = Arc::new(pdfcraft_cos::write_full(&doc, &Default::default()).unwrap());
+    let mut s = Session::new();
+    let id = s.open("m.pdf", None, bytes, Some("owner")).unwrap();
+    s.apply(id, Edit::RemoveProtection).unwrap();
+    assert!(!s.get(id).unwrap().info.encrypted);
     let plain = s.save_bytes(id).unwrap();
     assert!(pdfcraft_cos::Document::open(plain).unwrap().security().is_none(), "security removed");
 }
@@ -2167,7 +2183,7 @@ fn crop_and_duplicate_pages_show_in_the_viewer() {
     assert_eq!(d.info.pages[0].crop, [10.0, 20.0, 170.0, 260.0]);
     assert_eq!((d.info.pages[0].width, d.info.pages[0].height), (160.0, 240.0), "the viewer shows the cropped size");
     assert_eq!(d.page_boxes()[1][1], [0.0, 0.0, 200.0, 300.0]);
-    s.apply(id, Edit::DuplicatePages { pages: vec![1] }).unwrap();
+    s.apply(id, Edit::DuplicatePages { pages: vec![1], at: None }).unwrap();
     assert_eq!(page_texts(&s, id), ["Page 1", "Page 2", "Page 2"]);
     assert_eq!(s.get(id).unwrap().can_undo(), Some("Duplicate page"));
 }
