@@ -747,6 +747,7 @@ impl Automation {
             "content_delete" => self.content_delete(&a)?,
             "content_copy" => self.content_copy(&a)?,
             "doc_print" => self.doc_print(&a)?,
+            "doc_fix_hairlines" => self.fix_hairlines(&a)?,
             "attachment_add" => {
                 let path = self.resolve(a.str("path")?, false)?;
                 let bytes = read_input(&path)?;
@@ -834,6 +835,7 @@ impl Automation {
             "accessibility_tag_content" => self.accessibility_tag_content(&a)?,
             "accessibility_set_tag_property" => self.accessibility_set_tag_property(&a)?,
             "accessibility_mark_tag_artifact" => self.accessibility_mark_tag_artifact(&a)?,
+            "accessibility_layout_table_to_blocks" => self.accessibility_layout_table_to_blocks(&a)?,
             "accessibility_move_tag" => self.accessibility_move_tag(&a)?,
             "sign_id_create" => self.sign_id_create(&a)?,
             "sign_document" => self.sign_document(&a)?,
@@ -871,6 +873,7 @@ impl Automation {
             "sign_trust" => self.sign_trust(&a)?,
             "comment_mark" => self.comment_mark(&a)?,
             "comment_lock" => self.comment_lock(&a)?,
+            "comment_popup" => self.comment_popup(&a)?,
             "comments_hide" => self.comments_hide(&a)?,
             "layer_set" => self.layer_set(&a)?,
             "view_reading_colors" => self.view_reading_colors(&a)?,
